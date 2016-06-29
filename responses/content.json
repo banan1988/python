@@ -1,0 +1,10 @@
+{
+    "key": "Example JSON content",
+    "array": [
+      "Example JSON content 1",
+      "Example JSON content 2"
+    ],
+    "nested": {
+      "key": "Example nested JSON content"
+    }
+}
