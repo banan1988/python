@@ -1,14 +1,19 @@
-from enum import Enum
-from http.server import HTTPServer, BaseHTTPRequestHandler, SimpleHTTPRequestHandler
-from string import Template
 import argparse
 import logging
 import logging.config
 import logging.handlers
-import sys
 import os
+import sys
 
-PORT = 8000
+from string import Template
+
+try:
+    # python 3
+    from http.server import HTTPServer, BaseHTTPRequestHandler, SimpleHTTPRequestHandler
+except ImportError:
+    # python 2
+    from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+    from SimpleHTTPServer import SimpleHTTPRequestHandler
 
 
 def get_default_logger():
@@ -42,125 +47,169 @@ def get_logger():
 
 def get_args():
     parser = argparse.ArgumentParser(
-                        description='Simple webserver written in Python',
-                        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        description='Simple webserver written in Python',
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--port', type=int,
                         required=True,
-                        default=PORT,
                         help='Port to listening.')
     return parser.parse_args()
 
 
-def run(port=PORT, server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
+def run(port, server_class=HTTPServer, handler_class=BaseHTTPRequestHandler):
     server_address = ('', port)
-    httpd = server_class(server_address, handler_class)
+    httpd = None;
     try:
+        httpd = server_class(server_address, handler_class)
+
         LOGGER.info("Listening on port: %d", port)
         httpd.serve_forever()
     except Exception as e:
-        httpd.shutdown()
+        LOGGER.warn("Couldn't start webserver on port: %d -  %s", port, e)
+    finally:
+        if httpd:
+            httpd.shutdown()
 
 
-class MimeType(Enum):
-    text_html = "text/html"
-    text_css = "text/css"
+class DefaultHTTPHandler(SimpleHTTPRequestHandler):
+    def send_headers(self, parameters):
+        assert type(parameters) == dict
 
+        for key, value in parameters.items():
+            self.send_header(key, value)
 
-class HeaderType(Enum):
-    content_type = "Content-type"
-    allow_control_allow_origin = "Access-Control-Allow-Origin"
-
-
-class Header:
-    def __init__(self, key, value):
-        self.key = key
-        self.value = value
-
-    def __str__(self):
-        return "%s: %s" % (self.key, self.value)
-
-        # contentType = Header("Content-type", "text/html; charset=utf-8")
-        # accessControlAllowOrigin = Header("Access-Control-Allow-Origin", "*")
-        #
-        # headers = [contentType, accessControlAllowOrigin]
-
-
-class HTTPHandler(SimpleHTTPRequestHandler):
-    def do_GET(self):
-        if self.path == "/":
-            self.send_response(200)
-
-            self.send_header("Content-type", "text/html; charset=utf-8")
-            self.end_headers()
-
-            f = open("index.html")
-            template = Template(f.read())
-            index = template.safe_substitute(dict(message="hello"))
-
-            # self.send_response(200, "hello")
-
-            # self.wfile.write(bytes("index", "utf-8"))
-            self.wfile.write(bytes(index, "utf-8"))
-            return
-            #
-            # if self.path == "/":
-            #     self.path = "/index_example2.html"
-            #
-            # try:
-            #     sendReply = False
-            #     if self.path.endswith(".html"):
-            #         mimetype = MimeType.text_html
-            #         sendReply = True
-            #     if self.path.endswith(".jpg"):
-            #         mimetype = 'image/jpg'
-            #         sendReply = True
-            #     if self.path.endswith(".gif"):
-            #         mimetype = 'image/gif'
-            #         sendReply = True
-            #     if self.path.endswith(".js"):
-            #         mimetype = 'application/javascript'
-            #         sendReply = True
-            #     if self.path.endswith(".css"):
-            #         mimetype = MimeType.text_css
-            #         sendReply = True
-            #
-            #     if sendReply == True:
-            #         # Open the static file requested and send it
-            #         # f = open(curdir + sep + self.path)
-            #         self.send_response(200)
-            #         self.send_header('Content-type', mimetype)
-            #         self.end_headers()
-            #         self.wfile.write(bytes("message", "utf8"))
-            #         # self.wfile.write(f.read())
-            #         # f.close()
-            #     return
-            # except IOError:
-            #     self.send_error(404, 'File Not Found: %s' % self.path)
-
-            # def setHeaders(self, Header):
-        if self.path == "/content/text":
-            self.response_file_as_content("content.txt")
-            return
-
-        if self.path == "/content/html":
-            self.response_file_as_content("content.html", 499, "text/html")
-            return
-
-        if self.path == "/content/json":
-            self.response_file_as_content("content.json", 200, "application/json")
-            return
-
-    def response_file_as_content(self, filename, code=200, mime_type="text/plain"):
-        self.send_response(code)
-        self.header(mime_type)
-        with open("responses/%s" % filename) as content:
-            self.content(content)
-
-    def header(self, mime_type="text/plain"):
-        self.send_header("Content-type", "%s; charset=utf-8" % mime_type)
         self.end_headers()
 
-    def content(self, content):
+    def send_content(self, content):
+        self.wfile.write(content)
+
+    def send_error_404(self):
+        error_msg = "Not Found resources under %s path" % self.path
+        LOGGER.warn(error_msg)
+        self.send_error(404, error_msg)
+
+    def send_error_500(self, e):
+        error_msg = "Couldn't handle request for path: %s - %s" % (self.path, e)
+        LOGGER.warn(error_msg)
+        self.send_error(500, error_msg)
+
+    def get_content_from_template(self, filename, parameters):
+        assert type(parameters) == dict
+
+        try:
+            with open(filename) as template_file:
+                template = Template(template_file.read())
+                return template.safe_substitute(parameters)
+        except IOError as e:
+            raise Exception("Not found template: %s" % filename, e)
+        except Exception as e:
+            raise Exception("Couldn't get content based on template: %s" % filename, e)
+
+    def get_content_from_file(self, filename):
+        try:
+            with open(filename) as f:
+                return f.read()
+        except IOError as e:
+            raise Exception("Not found file: %s" % filename, e)
+        except Exception as e:
+            raise Exception("Couldn't get content based on file: %s" % filename, e)
+
+
+class HTTPHandler2(DefaultHTTPHandler):
+    """python 2"""
+    def do_GET(self):
+        try:
+            if self.path == "/":
+                self.send_response(200)
+                self.send_headers({"Content-type": "text/html; charset=utf-8"})
+
+                content = self.get_content_from_template("index.html", dict(message="Hello"))
+
+                self.send_content(content)
+                return
+
+            if self.path == "/content/text":
+                self.send_response(200)
+                self.send_headers({"Content-type": "text/plain; charset=utf-8"})
+
+                content = self.get_content_from_file("responses/content.txt")
+
+                self.send_content(content)
+                return
+
+            if self.path == "/content/html":
+                self.send_response(499)
+                self.send_headers({"Content-type": "text/html; charset=utf-8"})
+
+                content = self.get_content_from_file("responses/content.html")
+
+                self.send_content(content)
+                return
+
+            if self.path == "/content/json":
+                self.send_response(200)
+                self.send_headers({"Content-type": "application/json; charset=utf-8"})
+
+                content = self.get_content_from_file("responses/content.json")
+
+                self.send_content(content)
+                return
+
+        except Exception as e:
+            self.send_error_500(e)
+            return
+
+        self.send_error_404()
+        return
+
+
+class HTTPHandler3(DefaultHTTPHandler):
+    """python 3"""
+    def do_GET(self):
+        try:
+            if self.path == "/":
+                self.send_response(200)
+                self.send_headers({"Content-type": "text/html; charset=utf-8"})
+
+                content = self.get_content_from_template("index.html", dict(message="Hello"))
+
+                self.send_content(content)
+                return
+
+            if self.path == "/content/text":
+                self.send_response(200)
+                self.send_headers({"Content-type": "text/plain; charset=utf-8"})
+
+                content = self.get_content_from_file("responses/content.txt")
+
+                self.send_content(content)
+                return
+
+            if self.path == "/content/html":
+                self.send_response(499)
+                self.send_headers({"Content-type": "text/html; charset=utf-8"})
+
+                content = self.get_content_from_file("responses/content.html")
+
+                self.send_content(content)
+                return
+
+            if self.path == "/content/json":
+                self.send_response(200)
+                self.send_headers({"Content-type": "application/json; charset=utf-8"})
+
+                content = self.get_content_from_file("responses/content.json")
+
+                self.send_content(content)
+                return
+
+        except Exception as e:
+            self.send_error_500(e)
+            return
+
+        self.send_error_404()
+        return
+
+    def send_content(self, content):
         if str == type(content):
             self.wfile.write(bytes(content, "utf8"))
         else:
@@ -168,7 +217,8 @@ class HTTPHandler(SimpleHTTPRequestHandler):
 
 
 def main():
-    run(ARGS.port, HTTPServer, HTTPHandler)
+    run(ARGS.port, HTTPServer, HTTPHandler2)
+
 
 if __name__ == '__main__':
     ARGS = get_args()
