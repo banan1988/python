@@ -116,6 +116,7 @@ class DefaultHTTPHandler(SimpleHTTPRequestHandler):
 
 class HTTPHandler2(DefaultHTTPHandler):
     """python 2"""
+
     def do_GET(self):
         try:
             if self.path == "/":
@@ -164,6 +165,7 @@ class HTTPHandler2(DefaultHTTPHandler):
 
 class HTTPHandler3(DefaultHTTPHandler):
     """python 3"""
+
     def do_GET(self):
         try:
             if self.path == "/":
