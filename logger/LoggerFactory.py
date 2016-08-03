@@ -7,7 +7,7 @@ class LoggerFactory:
         pass
 
     @staticmethod
-    def create_console_logger(name, level=DEBUG):
+    def __create_console_logger(name, level=DEBUG):
         # create logger
         logger = getLogger(name)
         logger.setLevel(level)
@@ -33,4 +33,4 @@ class LoggerFactory:
             return getLogger(name)
         except Exception as e:
             print ("Couldn't create logger using %s" % configuration_file, e)
-            return LoggerFactory.create_console_logger(name)
+            return LoggerFactory.__create_console_logger(name)
