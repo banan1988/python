@@ -53,6 +53,9 @@ class HaProxyHost:
 class HaProxy:
     __monitor_data = dict()
 
+    def __init__(self, skip_backend=True):
+        self.skip_backend = skip_backend
+
     def get_backend_names(self):
         return self.__monitor_data.keys()
 
@@ -95,12 +98,15 @@ class HaProxy:
                 host.name = host_details['svname']
                 host.current_sessions = self.__to_int(host_details['scur'])
                 host.max_sessions = self.__to_int(host_details['smax'])
-                host.backend = host_details['bck']
+                host.backend = self.__to_bool(host_details['bck'])
                 host.status = Status.of(host_details['status'])
                 host.last_status_change = self.__to_int(host_details['lastchg'])
                 host.downtime = self.__to_int(host_details['downtime'])
 
-                backend_name_hosts.append(host)
+                if self.skip_backend and host.backend:
+                    pass
+                else:
+                    backend_name_hosts.append(host)
 
             self.__monitor_data[backend_name] = backend_name_hosts
 
@@ -116,6 +122,13 @@ class HaProxy:
             return int(data)
         except ValueError:
             return default
+
+    def __to_bool(self, data, default=False):
+        if "0" == str(data):
+            return False
+        elif "1" == str(data):
+            return True
+        return default
 
 
 filename = "example_haproxy_monitor.csv"
