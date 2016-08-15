@@ -129,13 +129,3 @@ class HaProxy:
         elif "1" == str(data):
             return True
         return default
-
-
-filename = "example_haproxy_monitor.csv"
-url = "http://localhost:8000/sync_monitor;csv;norefresh"
-
-haproxy = HaProxy()
-haproxy.load_from_file(filename)
-# haproxy.load_from_url(url)
-print(haproxy.get_backend_names())
-print(haproxy.get_available_hosts('backend_name_8')[0])
