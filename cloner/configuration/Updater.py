@@ -11,7 +11,8 @@ def load_haproxy_monitors(configuration):
 
     haproxy = HaProxy()
     haproxy.load_from_file("../../haproxy/example_haproxy_monitor.csv")
-    haproxy_monitors['xxx'] = haproxy
+    haproxy_monitors['backend-name-1'] = haproxy
+    haproxy_monitors['backend-name-2'] = haproxy
 
     return haproxy_monitors
 
@@ -21,7 +22,19 @@ configuration = ConfigurationReader.read(configuration_path)
 
 haproxy_monitors = load_haproxy_monitors(configuration)
 
+def get_haproxy_monitor(name):
+    try:
+        return haproxy_monitors[name]
+    except:
+        raise Exception("Not found haproxy_monitory by name %s", name)
+
 for cluster_name in configuration.get_clusters().keys():
     cluster_configuration = configuration.get_cluster(cluster_name)
+
+    haproxy_monitor = get_haproxy_monitor(cluster_configuration.haproxy_backend_name)
+
     for hostdomain in cluster_configuration.get_hosts().keys():
         host_configuration = cluster_configuration.get_host(hostdomain)
+
+        print(type(host_configuration.))
+

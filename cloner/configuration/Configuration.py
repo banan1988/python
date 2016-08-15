@@ -11,17 +11,13 @@ class JSONSerializer:
         return cls(**json_dict)
 
 
-class Dict2Obj(object):
-    def __init__(self, dictionary):
-        for key in dictionary:
-            setattr(self, key, dictionary[key])
-
-    def __repr__(self):
-        attrs = str([x for x in self.__dict__])
-        return "<Dict2Obj: %s>" % attrs
+class Dict2Object:
+    @classmethod
+    def from_dict(cls, dictionary):
+        return cls(**dictionary)
 
 
-class HostConfiguraton:
+class HostConfiguraton(Dict2Object):
     def __init__(self, target_hosts=[], traffic_rate='100%', listen_port=8080, allow_url_paths=[],
                  disallow_url_paths=[], url_rewrite_paths=[], save_responses=False, http_timeout='20m',
                  context_path=None):
@@ -36,16 +32,12 @@ class HostConfiguraton:
         self.context_path = context_path
 
 
-class ClusterConfiguration:
+class ClusterConfiguration(Dict2Object):
     def __init__(self, always_running=False, haproxy_monitor=None, haproxy_backend_name=None, hosts={}):
         self.always_running = always_running
         self.haproxy_monitor = haproxy_monitor
         self.haproxy_backend_name = haproxy_backend_name
         self.hosts = hosts
-
-    # @classmethod
-    # def from_dict(cls, dictionary):
-    #     return cls(**dictionary)
 
     def add_host(self, hostdomain, host_configuration):
         self.hosts[hostdomain] = host_configuration
@@ -55,7 +47,7 @@ class ClusterConfiguration:
             self.add_host(hostdomain, host_configuration)
 
     def get_host(self, hostdomain):
-        return self.hosts[hostdomain]
+        return HostConfiguraton.from_dict(self.hosts.get(hostdomain))
 
     def get_hosts(self):
         return self.hosts
@@ -82,7 +74,7 @@ class Configuration(JSONSerializer):
         return self.clusters
 
     def get_cluster(self, name):
-        return ClusterConfiguration(self.clusters.get(name))
+        return ClusterConfiguration.from_dict(self.clusters.get(name))
 
     def get_haproxy_monitors(self):
         return self.haproxy_monitors
