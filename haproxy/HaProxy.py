@@ -4,8 +4,12 @@ from itertools import groupby
 from urllib.request import urlopen
 
 
-def to_minutes(seconds):
-    return int(seconds / 60)
+
+
+class Dict2Object:
+    @classmethod
+    def from_dict(cls, dictionary):
+        return cls(**dictionary)
 
 
 class Status(Enum):
@@ -21,23 +25,25 @@ class Status(Enum):
         raise Exception("Not found correct Status by value: %s" % value)
 
 
-class HaProxyHost:
-    # pxname
-    backend_name = None
-    # svname
-    name = None
-    # scur
-    current_sessions = 0
-    # smax
-    max_sessions = 0
-    # bck
-    backend = False
-    # status
-    status = Status.DOWN
-    # lastchg
-    last_status_change = 0
-    # downtime
-    downtime = 0
+class Host(Dict2Object):
+    def __init__(self, backend_name=None, name=None, current_sessions=0, max_sessions=0, backend=False,
+                 status=Status.DOWN, last_status_change=0, downtime=0):
+        # pxname
+        self.backend_name = backend_name
+        # svname
+        self.name = name
+        # scur
+        self.current_sessions = current_sessions
+        # smax
+        self.max_sessions = max_sessions
+        # bck
+        self.backend = backend
+        # status
+        self.status = status
+        # lastchg
+        self.last_status_change = last_status_change
+        # downtime
+        self.downtime = downtime
 
     def __str__(self):
         return "HaProxyHost {" \
@@ -50,17 +56,16 @@ class HaProxyHost:
                "}"
 
 
-class HaProxy:
-    __monitor_data = dict()
-
-    def __init__(self, skip_backend=True):
+class HaProxy(Dict2Object):
+    def __init__(self, monitor_data={}, skip_backend=True):
+        self.monitor_data = monitor_data
         self.skip_backend = skip_backend
 
     def get_backend_names(self):
-        return self.__monitor_data.keys()
+        return self.monitor_data.keys()
 
     def get_hosts(self, backend_name):
-        return self.__monitor_data.get(backend_name)
+        return self.monitor_data.get(backend_name)
 
     def get_available_hosts(self, backend_name):
         available_hosts = list()
@@ -72,7 +77,7 @@ class HaProxy:
     def get_host(self, backend_name, host_name):
         for host in self.get_hosts(backend_name):
             if host.name == host_name:
-                return host
+                return Host.from_dict(host)
         raise Exception("Not found host by name %s in backend name %s" % host_name, backend_name)
 
     def load_from_file(self, filename):
@@ -93,7 +98,7 @@ class HaProxy:
             backend_name_hosts = list()
             for host_details in hosts:
                 # print(host_details)
-                host = HaProxyHost()
+                host = Host()
                 host.backend_name = backend_name
                 host.name = host_details['svname']
                 host.current_sessions = self.__to_int(host_details['scur'])
@@ -108,7 +113,7 @@ class HaProxy:
                 else:
                     backend_name_hosts.append(host)
 
-            self.__monitor_data[backend_name] = backend_name_hosts
+            self.monitor_data[backend_name] = backend_name_hosts
 
     def __csv_reader(self, data):
         return csv.DictReader(data)

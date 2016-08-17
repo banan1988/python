@@ -1,0 +1,92 @@
+{
+    "clusters": {
+        "cluster-1": {
+            "always_running": true,
+            "haproxy_backend_name": "backend-name-1",
+            "haproxy_monitor": "localhost",
+            "hosts": {
+                "localhost-1.domain": {
+                    "allow_url_paths": [],
+                    "context_path": null,
+                    "disallow_url_paths": [],
+                    "http_timeout": "20m",
+                    "listen_port": 8080,
+                    "save_responses": false,
+                    "target_hosts": [],
+                    "traffic_rate": "100%",
+                    "url_rewrite_paths": []
+                },
+                "localhost-2.domain": {
+                    "allow_url_paths": [],
+                    "context_path": null,
+                    "disallow_url_paths": [],
+                    "http_timeout": "20m",
+                    "listen_port": 8080,
+                    "save_responses": false,
+                    "target_hosts": [],
+                    "traffic_rate": "100%",
+                    "url_rewrite_paths": []
+                },
+                "localhost.domain": {
+                    "allow_url_paths": [],
+                    "context_path": null,
+                    "disallow_url_paths": [],
+                    "http_timeout": "20m",
+                    "listen_port": 8080,
+                    "save_responses": false,
+                    "target_hosts": [],
+                    "traffic_rate": "100%",
+                    "url_rewrite_paths": []
+                }
+            }
+        },
+        "cluster-2": {
+            "always_running": true,
+            "haproxy_backend_name": "backend-name-1",
+            "haproxy_monitor": "localhost",
+            "hosts": {
+                "localhost-1.domain": {
+                    "allow_url_paths": [],
+                    "context_path": null,
+                    "disallow_url_paths": [],
+                    "http_timeout": "20m",
+                    "listen_port": 8080,
+                    "save_responses": false,
+                    "target_hosts": [],
+                    "traffic_rate": "100%",
+                    "url_rewrite_paths": []
+                },
+                "localhost-2.domain": {
+                    "allow_url_paths": [],
+                    "context_path": null,
+                    "disallow_url_paths": [],
+                    "http_timeout": "20m",
+                    "listen_port": 8080,
+                    "save_responses": false,
+                    "target_hosts": [],
+                    "traffic_rate": "100%",
+                    "url_rewrite_paths": []
+                },
+                "localhost.domain": {
+                    "allow_url_paths": [],
+                    "context_path": null,
+                    "disallow_url_paths": [],
+                    "http_timeout": "20m",
+                    "listen_port": 8080,
+                    "save_responses": false,
+                    "target_hosts": [],
+                    "traffic_rate": "100%",
+                    "url_rewrite_paths": []
+                }
+            }
+        }
+    },
+    "haproxy_monitors": {
+        "localhost-8080": {
+            "url": "http://localhost:8080/monitor"
+        },
+        "localhost-9090": {
+            "url": "http://localhost:9090/monitor"
+        }
+    }
+}

@@ -17,7 +17,7 @@ class Dict2Object:
         return cls(**dictionary)
 
 
-class HostConfiguraton(Dict2Object):
+class Host(Dict2Object):
     def __init__(self, target_hosts=[], traffic_rate='100%', listen_port=8080, allow_url_paths=[],
                  disallow_url_paths=[], url_rewrite_paths=[], save_responses=False, http_timeout='20m',
                  context_path=None):
@@ -32,30 +32,32 @@ class HostConfiguraton(Dict2Object):
         self.context_path = context_path
 
 
-class ClusterConfiguration(Dict2Object):
+class Cluster(Dict2Object):
     def __init__(self, always_running=False, haproxy_monitor=None, haproxy_backend_name=None, hosts={}):
         self.always_running = always_running
         self.haproxy_monitor = haproxy_monitor
         self.haproxy_backend_name = haproxy_backend_name
         self.hosts = hosts
 
-    def add_host(self, hostdomain, host_configuration):
-        self.hosts[hostdomain] = host_configuration
+    def add_host(self, hostdomain, host):
+        self.hosts[hostdomain] = host
 
-    def add_hosts(self, hostdomains, host_configuration):
+    def add_hosts(self, hostdomains, host):
         for hostdomain in hostdomains:
-            self.add_host(hostdomain, host_configuration)
-
-    def get_host(self, hostdomain):
-        return HostConfiguraton.from_dict(self.hosts.get(hostdomain))
+            self.add_host(hostdomain, host)
 
     def get_hosts(self):
         return self.hosts
 
+    def get_hostdomains(self):
+        return self.hosts.keys()
 
-class HaProxyMonitor:
-    def __init__(self, name, url):
-        self.name = name
+    def get_host(self, hostdomain):
+        return Host.from_dict(self.hosts.get(hostdomain))
+
+
+class HaProxyMonitor(Dict2Object):
+    def __init__(self, url):
         self.url = url
 
 
@@ -67,20 +69,26 @@ class Configuration(JSONSerializer):
     def add_cluster(self, name, cluster):
         self.clusters[name] = cluster
 
-    def add_haproxy_monitor(self, name, url):
-        self.haproxy_monitors[name] = url
+    def add_haproxy_monitor(self, name, haproxy_monitor):
+        self.haproxy_monitors[name] = haproxy_monitor
 
     def get_clusters(self):
         return self.clusters
 
+    def get_clusters_names(self):
+        return self.clusters.keys()
+
     def get_cluster(self, name):
-        return ClusterConfiguration.from_dict(self.clusters.get(name))
+        return Cluster.from_dict(self.clusters.get(name))
 
     def get_haproxy_monitors(self):
         return self.haproxy_monitors
 
+    def get_haproxy_monitors_names(self):
+        return self.haproxy_monitors.keys()
+
     def get_haproxy_monitor(self, name):
-        return self.haproxy_monitors[name]
+        return HaProxyMonitor.from_dict(self.haproxy_monitors.get(name))
 
 
 class ConfigurationReader:
@@ -98,17 +106,17 @@ class ConfigurationWriter:
 
 
 configuration = Configuration()
-configuration.add_haproxy_monitor("localhost-8080", "http://localhost:8080/monitor")
-configuration.add_haproxy_monitor("localhost-9090", "http://localhost:9090/monitor")
+configuration.add_haproxy_monitor("localhost-8080", HaProxyMonitor("http://localhost:8080/monitor"))
+configuration.add_haproxy_monitor("localhost-9090", HaProxyMonitor("http://localhost:9090/monitor"))
 
-cluster = ClusterConfiguration()
+cluster = Cluster()
 cluster.always_running = True
 cluster.haproxy_backend_name = "backend-name-1"
 cluster.haproxy_monitor = "localhost"
 
-host_configuration = HostConfiguraton()
-cluster.add_host("localhost.domain", host_configuration)
-cluster.add_hosts(("localhost-1.domain", "localhost-2.domain"), host_configuration)
+host = Host()
+cluster.add_host("localhost.domain", host)
+cluster.add_hosts(("localhost-1.domain", "localhost-2.domain"), host)
 
 configuration.add_cluster("cluster-1", cluster)
 configuration.add_cluster("cluster-2", cluster)
