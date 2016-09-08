@@ -204,6 +204,15 @@ class HTTPHandler3(DefaultHTTPHandler):
                 self.send_content(content)
                 return
 
+            if self.path == "/content/csv":
+                self.send_response(200)
+                self.send_headers({"Content-type": "text/plain; charset=utf-8"})
+
+                content = self.get_content_from_file("responses/content.csv")
+
+                self.send_content(content)
+                return
+
         except Exception as e:
             self.send_error_500(e)
             return
@@ -219,7 +228,7 @@ class HTTPHandler3(DefaultHTTPHandler):
 
 
 def main():
-    run(ARGS.port, HTTPServer, HTTPHandler2)
+    run(ARGS.port, HTTPServer, HTTPHandler3)
 
 
 if __name__ == '__main__':
