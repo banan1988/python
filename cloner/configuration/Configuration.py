@@ -1,12 +1,12 @@
 import json
 
 
-class JSONSerializer:
-    def to_JSON(self):
+class JsonMapper:
+    def to_json(self):
         return json.dumps(self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
     @classmethod
-    def from_JSON(cls, json_str):
+    def from_json(cls, json_str):
         json_dict = json.loads(json_str)
         return cls(**json_dict)
 
@@ -18,6 +18,8 @@ class Dict2Object:
 
 
 class Host(Dict2Object):
+    hostdomain = None
+
     def __init__(self, target_hosts=[], traffic_rate='100%', listen_port=8080, allow_url_paths=[],
                  disallow_url_paths=[], url_rewrite_paths=[], save_responses=False, http_timeout='20m',
                  context_path=None):
@@ -31,10 +33,21 @@ class Host(Dict2Object):
         self.http_timeout = http_timeout
         self.context_path = context_path
 
+    def get_hostname(self):
+        split = self.hostdomain.split(".", 1)
+        return split[0]
+
+    def get_domain(self):
+        split = self.hostdomain.split(".")
+        return split[1:]
+
 
 class Cluster(Dict2Object):
-    def __init__(self, always_running=False, haproxy_monitor=None, haproxy_backend_name=None, hosts={}):
+    name = None
+
+    def __init__(self, always_running=False, updater_enabled=True, haproxy_monitor=None, haproxy_backend_name=None, hosts={}):
         self.always_running = always_running
+        self.updater_enabled = updater_enabled
         self.haproxy_monitor = haproxy_monitor
         self.haproxy_backend_name = haproxy_backend_name
         self.hosts = hosts
@@ -53,15 +66,19 @@ class Cluster(Dict2Object):
         return self.hosts.keys()
 
     def get_host(self, hostdomain):
-        return Host.from_dict(self.hosts.get(hostdomain))
+        host = Host.from_dict(self.hosts.get(hostdomain))
+        host.hostdomain = hostdomain
+        return host
 
 
 class HaProxyMonitor(Dict2Object):
+    name = None
+
     def __init__(self, url):
         self.url = url
 
 
-class Configuration(JSONSerializer):
+class Configuration(JsonMapper):
     def __init__(self, clusters={}, haproxy_monitors={}):
         self.clusters = clusters
         self.haproxy_monitors = haproxy_monitors
@@ -79,7 +96,9 @@ class Configuration(JSONSerializer):
         return self.clusters.keys()
 
     def get_cluster(self, name):
-        return Cluster.from_dict(self.clusters.get(name))
+        cluster = Cluster.from_dict(self.clusters.get(name))
+        cluster.name = name
+        return cluster
 
     def get_haproxy_monitors(self):
         return self.haproxy_monitors
@@ -88,31 +107,35 @@ class Configuration(JSONSerializer):
         return self.haproxy_monitors.keys()
 
     def get_haproxy_monitor(self, name):
-        return HaProxyMonitor.from_dict(self.haproxy_monitors.get(name))
+        haproxy_monitor = HaProxyMonitor.from_dict(self.haproxy_monitors.get(name))
+        haproxy_monitor.name = name
+        return haproxy_monitor
 
 
 class ConfigurationReader:
     @staticmethod
     def read(path):
         with open(path) as configuration_file:
-            return Configuration.from_JSON(configuration_file.read())
+            return Configuration.from_json(configuration_file.read())
 
 
 class ConfigurationWriter:
     @staticmethod
     def write(path, configuration):
         with open(path, "w") as configuration_file:
-            configuration_file.write(configuration.to_JSON())
+            configuration_file.write(configuration.to_json())
 
 
 configuration = Configuration()
-configuration.add_haproxy_monitor("localhost-8080", HaProxyMonitor("http://localhost:8080/monitor"))
-configuration.add_haproxy_monitor("localhost-9090", HaProxyMonitor("http://localhost:9090/monitor"))
+monitor = HaProxyMonitor("http://localhost:9090/content/csv")
+monitor.name = "xxx"
+configuration.add_haproxy_monitor("localhost-8080", monitor)
+configuration.add_haproxy_monitor("localhost-9090", monitor)
 
 cluster = Cluster()
 cluster.always_running = True
 cluster.haproxy_backend_name = "backend-name-1"
-cluster.haproxy_monitor = "localhost"
+cluster.haproxy_monitor = "localhost-9090"
 
 host = Host()
 cluster.add_host("localhost.domain", host)
@@ -122,3 +145,7 @@ configuration.add_cluster("cluster-1", cluster)
 configuration.add_cluster("cluster-2", cluster)
 
 ConfigurationWriter.write("sample_configuration.json", configuration)
+
+hpm = HaProxyMonitor("url")
+hpm.name = "xxx"
+print(hpm)
