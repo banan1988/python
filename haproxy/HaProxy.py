@@ -4,8 +4,6 @@ from itertools import groupby
 from urllib.request import urlopen
 
 
-
-
 class Dict2Object:
     @classmethod
     def from_dict(cls, dictionary):
@@ -56,10 +54,13 @@ class Host(Dict2Object):
                "}"
 
 
+class NotFoundHostException(Exception):
+    pass
+
+
 class HaProxy(Dict2Object):
-    def __init__(self, monitor_data={}, skip_backend=True):
+    def __init__(self, monitor_data={}):
         self.monitor_data = monitor_data
-        self.skip_backend = skip_backend
 
     def get_backend_names(self):
         return self.monitor_data.keys()
@@ -78,17 +79,17 @@ class HaProxy(Dict2Object):
         for host in self.get_hosts(backend_name):
             if host.name == host_name:
                 return Host.from_dict(host)
-        raise Exception("Not found host by name %s in backend name %s" % host_name, backend_name)
+        raise NotFoundHostException("Not found host by name %s in backend name %s" % host_name, backend_name)
 
-    def load_from_file(self, filename):
+    def load_from_file(self, filename, skip_backend=True):
         with open(filename) as monitor:
-            self.__load(monitor)
+            self.__load(monitor, skip_backend)
 
-    def load_from_url(self, url):
+    def load_from_url(self, url, skip_backend=True):
         with urlopen(url) as monitor:
-            self.__load(monitor.read().decode('utf-8').splitlines())
+            self.__load(monitor.read().decode('utf-8').splitlines(), skip_backend)
 
-    def __load(self, data):
+    def __load(self, data, skip_backend):
         # print(type(data))
         reader = self.__csv_reader(data)
         pxname = reader.fieldnames[0]
@@ -108,7 +109,7 @@ class HaProxy(Dict2Object):
                 host.last_status_change = self.__to_int(host_details['lastchg'])
                 host.downtime = self.__to_int(host_details['downtime'])
 
-                if self.skip_backend and host.backend:
+                if skip_backend and host.backend:
                     pass
                 else:
                     backend_name_hosts.append(host)
