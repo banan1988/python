@@ -18,14 +18,10 @@ __all__ = ["Cloner"]
 
 class Cloner:
     def __init__(self, configuration: Configuration):
-        self._register_system_stop()
-
         self.cloner_thread = None
 
         gor_args = GorArgs(configuration).get()
         self.gor_command = Command(gor_args)
-
-        self.running = True
 
     def start(self):
         self.cloner_thread = threading.Thread(
@@ -36,12 +32,12 @@ class Cloner:
         self.cloner_thread.start()
 
     def wait_for_thread(self):
-        while self.running and self.cloner_thread.is_alive():
+        while self.cloner_thread.is_alive():
             self.cloner_thread.join(timeout=1)
 
     def stop(self):
         self.gor_command.terminate()
-        self.cloner_thread.join()
+        self.wait_for_thread()
 
     def force_stop(self):
         os.kill(self.gor_command.pid, signal.SIGKILL)
@@ -57,13 +53,6 @@ class Cloner:
         result = Command(gor_args).execute()
         version = result.stdout
         return version
-
-    def _system_stop(self, signal, frame):
-        self.running = False
-
-    def _register_system_stop(self):
-        # signal.signal(signal.SIGINT, self._system_stop)
-        signal.signal(signal.SIGTERM, self._system_stop)
 
 
 def get_args():

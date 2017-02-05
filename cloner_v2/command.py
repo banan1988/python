@@ -24,10 +24,12 @@ class Command:
 
     def __str__(self):
         return "Command(" \
+               "pid=%s, " \
                "command=%s, " \
                "return_code=%d, " \
                "stdout=%s, " \
                "stderr=%s)" % (
+                   self.pid,
                    self.command,
                    self.return_code,
                    self.stdout,
@@ -51,10 +53,17 @@ class Command:
             raise e
         except Exception as e:
             raise e
+        finally:
+            self.terminate()
+
+    def _pid(self):
+        if self.proc:
+            return self.proc.pid
+        return -1
 
     def terminate(self):
         try:
-            if self.proc and not self.proc.poll():
+            if self.proc:
                 self.proc.terminate()
         except PermissionError:
             self.logger.error("[%s] Process already died - %s." % (self.proc.pid, self.command), exc_info=False)
@@ -62,8 +71,3 @@ class Command:
         except ProcessLookupError:
             self.logger.error("[%s] Not found an open process which executes - %s." % (self.proc.pid, self.command), exc_info=False)
             pass
-
-    def _pid(self):
-        if self.proc:
-            return self.proc.pid
-        return -1
