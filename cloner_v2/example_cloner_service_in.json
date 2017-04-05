@@ -1,5 +1,6 @@
 {
   "input": {
+    "type": "tcp",
     "port": 8080,
     "paths": {
       "allow": [
@@ -18,14 +19,36 @@
   "output": {
     "http": {
       "hosts": [
-        "http://a.host.domain.com:8080",
-        "http://b.host.domain.com:8080",
-        "http://c.host.domain.com:8080"
+        {
+          "host": "http://a.host.domain.com:8080",
+          "rate": "66%"
+        },
+        {
+          "host": "http://a.host.domain.com:8080"
+        },
+        {
+          "host": "http://a.host.domain.com:8080"
+        }
       ],
       "rate": "100%",
-      "split_traffic": true,
-      "workers": -1
+      "workers": 1
     },
+    "tcp": {
+      "hosts": [
+        {
+          "host": "a.host.domain.com:12345"
+        },
+        {
+          "host": "a.host.domain.com:12345",
+          "rate": "33%"
+        },
+        {
+          "host": "a.host.domain.com:12345"
+        }
+      ],
+      "rate": "100%"
+    },
+    "split_traffic": true,
     "stdout": true
   },
   "finish_after": "180s",
@@ -34,4 +57,3 @@
     "--key2": "next_value"
   }
 }
-

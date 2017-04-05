@@ -38,9 +38,15 @@ class Paths(Dict2Object):
         self.allow = allow
 
 
+class InputType:
+    RAW = "raw"
+    TCP = "tcp"
+
+
 class Input(Dict2Object):
     """
     "input": {
+        "type": "raw"
         "port": 8080,
         "paths": {
             "allow": [],
@@ -50,9 +56,10 @@ class Input(Dict2Object):
      },
     """
 
-    def __init__(self, port, paths: Paths):
-        self.paths = Paths.from_dict(paths)
+    def __init__(self, type: InputType, port, paths: Paths):
+        self.type = type
         self.port = port
+        self.paths = Paths.from_dict(paths)
 
 
 class Http(Dict2Object):
@@ -64,16 +71,31 @@ class Http(Dict2Object):
             "http://c"
         ],
         "rate": "100%",
-        "split_traffic": false,
         "workers": -1
     },
     """
 
-    def __init__(self, hosts: list, rate, split_traffic: False, workers: -1):
-        self.workers = workers
-        self.split_traffic = split_traffic
-        self.rate = rate
+    def __init__(self, hosts: list, rate=None, workers=-1):
         self.hosts = hosts
+        self.rate = rate
+        self.workers = workers
+
+
+class Tcp(Dict2Object):
+    """
+    "tcp": {
+        "hosts": [
+            "http://a",
+            "http://b",
+            "http://c"
+        ],
+        "rate": "100%",
+    },
+    """
+
+    def __init__(self, hosts: list, rate=None):
+        self.hosts = hosts
+        self.rate = rate
 
 
 class Output(Dict2Object):
@@ -93,9 +115,11 @@ class Output(Dict2Object):
     },
     """
 
-    def __init__(self, http: Http, stdout=False):
-        self.stdout = stdout
+    def __init__(self, http: Http, tcp: Tcp, split_traffic=False, stdout=False):
         self.http = Http.from_dict(http)
+        self.tcp = Tcp.from_dict(tcp)
+        self.split_traffic = split_traffic
+        self.stdout = stdout
 
 
 class Configuration(JsonMapper):

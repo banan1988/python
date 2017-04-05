@@ -8,6 +8,15 @@ __version__ = "0.1"
 
 class Validator:
     @staticmethod
+    def is_hostname(hostname):
+        if len(hostname) > 255:
+            return False
+        if hostname[-1] == ".":
+            hostname = hostname[:-1]  # strip exactly one dot from the right, if present
+        allowed = re.compile("(?!-)[A-Z\d-]{1,63}(?<!-)$", re.IGNORECASE)
+        return all(allowed.match(x) for x in hostname.split("."))
+
+    @staticmethod
     def is_url(url):
         parsed_url = urlparse(url)
         return parsed_url.scheme in ["ftp", "http", "https"]
