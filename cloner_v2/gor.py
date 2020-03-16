@@ -187,3 +187,9 @@ class GorCommand:
 
     def build_string(self):
         return " ".join(self.build())
+
+
+if __name__ == '__main__':
+    conf = ConfigurationReader.read("example_cloner_service_in.json")
+    command = GorCommand(conf).build_string()
+    print(command)

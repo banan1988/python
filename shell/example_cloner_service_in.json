@@ -1,0 +1,37 @@
+{
+  "input": {
+    "port": 8080,
+    "paths": {
+      "allow": [
+        "/a1",
+        "/a2"
+      ],
+      "disallow": [
+        "/b1",
+        "/b2"
+      ],
+      "rewrite": [
+        "/a1/([a-zA-Z]+):/a2/$1"
+      ]
+    }
+  },
+  "output": {
+    "http": {
+      "hosts": [
+        "http://a.host.domain.com:8080",
+        "http://b.host.domain.com:8080",
+        "http://c.host.domain.com:8080"
+      ],
+      "rate": "100%",
+      "split_traffic": true,
+      "workers": -1
+    },
+    "stdout": true
+  },
+  "finish_after": "180s",
+  "extra_args": {
+    "--key": "value",
+    "--key2": "next_value"
+  }
+}
+

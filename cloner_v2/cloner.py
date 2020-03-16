@@ -23,6 +23,11 @@ class Cloner:
         gor_args = GorArgs(configuration).get()
         self.gor_command = Command(gor_args)
 
+        signal.signal(signal.SIGTERM, self.handler)
+
+    def handler(self, signum, frame):
+        self.stop()
+
     def start(self):
         self.cloner_thread = threading.Thread(
             name="ClonerThread",
@@ -32,8 +37,11 @@ class Cloner:
         self.cloner_thread.start()
 
     def wait_for_thread(self):
+        print(self.cloner_thread.is_alive())
         while self.cloner_thread.is_alive():
             self.cloner_thread.join(timeout=1)
+            print(self.cloner_thread.is_alive())
+        print(self.cloner_thread.is_alive())
 
     def stop(self):
         self.gor_command.terminate()
